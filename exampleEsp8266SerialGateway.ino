@@ -14,6 +14,8 @@ unsigned long timeSendSecSerial;  // used to check for acknowledgment of secured
 unsigned long timeReceiveSerial;  // used to regularly check for received message
 uint8_t diagConnection = 0x01;   // bit 0 pending serial link
 unsigned long timeSendInfo;     // to regurarly send information to th server
+unsigned long durationSinceGatewayReady;
+uint8_t gatewayReady = 0x00;
 #define delayBetweenInfo 5000   // delay before sending new status to the server  
 uint8_t sendInfoSwitch = 0x00;  // flag to switch between different data to send
 unsigned int count = 0;
@@ -28,12 +30,22 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  if (digitalRead(esp8226ReadyPin) != 1)
+  if (digitalRead(esp8226ReadyPin) != 1 )
   {
+    gatewayReady = false;
     Serial.println("wait for esp ready");
     delay(1000);
   }
-  else {
+  if (digitalRead(esp8226ReadyPin) == 1 && gatewayReady == 0x00)
+  {
+    durationSinceGatewayReady = millis();
+    gatewayReady=0x01;
+  }
+  if (digitalRead(esp8226ReadyPin) == 1 && millis() - durationSinceGatewayReady > 10000)
+  {
+    gatewayReady = 0x02;
+  }
+  if (gatewayReady == 0x02) {
     // ***  keep in touch with the server
     int getSerial = Serial_have_message();  // check if we have received a message
     if (getSerial > 0)                      // we got a message
